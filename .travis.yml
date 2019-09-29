@@ -7,5 +7,16 @@ go:
   - 1.12.x
   - 1.x
 
-os: osx
-osx_image: xcode9.1 # OS X 10.12 w/ Xcode 9.1
+os:
+  - linux
+  - osx
+
+matrix:
+  include:
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - libnss3-dev
+    - os: osx
+      osx_image: xcode9.1 # OS X 10.12 w/ Xcode 9.1
