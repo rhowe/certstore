@@ -55,21 +55,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/user"
 	"math/big"
-	"syscall"
 	"unicode/utf16"
 	"unsafe"
 )
 
-type Passwd struct {
-	PwName   string
-	PwPasswd string
-	PwUid    int
-	PwGid    int
-	PwGecos  string
-	PwDir    string
-	PwShell  string
-}
 type nssStore int
 
 func (nssStore) Identities() ([]Identity, error) {
@@ -294,30 +286,21 @@ func (nssStore) Close() {
 }
 
 func openStore() (Store, error) {
-	var passwd *Passwd = nil
-	passwdC, err := C.getpwuid(C.getuid())
-	if passwdC == nil {
-		if err == nil {
-			var e syscall.Errno
-			err = errors.New(e.Error())
+	homeDir := os.Getenv("HOME")
+
+	if homeDir == "" {
+		user, err := user.Current()
+
+		if (err == nil) {
+			homeDir = user.HomeDir
 		}
-		return nil, fmt.Errorf("There was an error (%s) when getting user info\n", error(err))
-	} else {
-		passwd = &Passwd{
-			PwName:   C.GoString(passwdC.pw_name),
-			PwPasswd: C.GoString(passwdC.pw_passwd),
-			PwUid:    int(passwdC.pw_uid),
-			PwGid:    int(passwdC.pw_gid),
-			PwGecos:  C.GoString(passwdC.pw_gecos),
-			PwDir:    C.GoString(passwdC.pw_dir),
-			PwShell:  C.GoString(passwdC.pw_shell),
-		}
-		//fmt.Printf("Home directory is: %s\n", passwd.PwDir)
 	}
-	if passwd == nil {
-		return nil, errors.New("Cannot locate nssdb store!\n")
+
+	if (homeDir == "") {
+		return nil, errors.New("Unable to locate user's home directory")
 	}
-	name := fmt.Sprintf("sql:/%s/.pki/nssdb/", passwd.PwDir)
+
+	name := fmt.Sprintf("sql:/%s/.pki/nssdb/", homeDir)
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 	//fmt.Printf("Opening: %s\n", name)
