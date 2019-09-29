@@ -58,6 +58,7 @@ import (
 	"os"
 	"os/user"
 	"math/big"
+	"path"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -300,11 +301,14 @@ func openStore() (Store, error) {
 		return nil, errors.New("Unable to locate user's home directory")
 	}
 
-	name := fmt.Sprintf("sql:/%s/.pki/nssdb/", homeDir)
-	nameC := C.CString(name)
-	defer C.free(unsafe.Pointer(nameC))
-	//fmt.Printf("Opening: %s\n", name)
-	ok := C.NSS_InitReadWrite(nameC)
+	nssdb := path.Join(homeDir, ".pki", "nssdb")
+	if _, err := os.Stat(nssdb); os.IsNotExist(err) {
+		return nil, fmt.Errorf("NSS database not found at %s\n", nssdb)
+	}
+	nssdbUrlC := C.CString(fmt.Sprintf("sql:/%s/", nssdb))
+	defer C.free(unsafe.Pointer(nssdbUrlC))
+	//fmt.Printf("Opening: %s\n", nssdbUrl)
+	ok := C.NSS_InitReadWrite(nssdbUrlC)
 	if ok != 0 {
 		C.NSS_Shutdown()
 		return nil, fmt.Errorf("Error %d, closing and returing...\n", int(C.PR_GetError()))
