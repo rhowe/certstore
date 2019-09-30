@@ -79,7 +79,6 @@ type nssStore int
 
 func (nssStore) Identities() ([]Identity, error) {
 	var identities = make([]Identity, 0)
-	//fmt.Printf("Listing certificates:\n")
 	var certs = C.PK11_ListCerts(C.PK11CertListAll, nil)
 	if certs == nil {
 		C.NSS_Shutdown()
@@ -305,7 +304,6 @@ func openStore() (Store, error) {
 	}
 	nssdbUrlC := C.CString(fmt.Sprintf("sql:/%s/", nssdb))
 	defer C.free(unsafe.Pointer(nssdbUrlC))
-	//fmt.Printf("Opening: %s\n", nssdbUrl)
 	ok := C.NSS_InitReadWrite(nssdbUrlC)
 	if ok != 0 {
 		C.NSS_Shutdown()
