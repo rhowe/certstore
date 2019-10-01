@@ -308,18 +308,10 @@ func (nssStore) Close() {
 
 // openStore opens the current user's NSS database.
 func openStore() (Store, error) {
-	homeDir := os.Getenv("HOME")
+	homeDir, err := os.UserHomeDir()
 
-	if homeDir == "" {
-		user, err := user.Current()
-
-		if err == nil {
-			homeDir = user.HomeDir
-		}
-	}
-
-	if homeDir == "" {
-		return nil, errors.New("Unable to locate user's home directory")
+	if err != nil {
+		return nil, err
 	}
 
 	nssdb := path.Join(homeDir, ".pki", "nssdb")
