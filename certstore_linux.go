@@ -67,9 +67,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"os/user"
-	"math/big"
 	"path"
 	"unicode/utf16"
 	"unsafe"
@@ -83,8 +83,8 @@ type nssStore int
 func (nssStore) Identities() ([]Identity, error) {
 	var (
 		identities = make([]Identity, 0)
-		certs = C.PK11_ListCerts(C.PK11CertListAll, nil)
-		node *C.CERTCertListNode
+		certs      = C.PK11_ListCerts(C.PK11CertListAll, nil)
+		node       *C.CERTCertListNode
 	)
 	if certs == nil {
 		C.NSS_Shutdown()
@@ -108,7 +108,7 @@ func (i *nssIdentity) Signer() (crypto.Signer, error) {
 // Certificate implements the Identity interface.
 func (i *nssIdentity) Certificate() (*x509.Certificate, error) {
 	var (
-		der = i.cert.derCert
+		der   = i.cert.derCert
 		bytes = C.GoBytes(unsafe.Pointer(der.data), C.int(der.len))
 	)
 	cert, err := x509.ParseCertificate(bytes)
@@ -121,7 +121,7 @@ func (i *nssIdentity) Certificate() (*x509.Certificate, error) {
 // CertificateChain implements the Identity interface.
 func (i *nssIdentity) CertificateChain() ([]*x509.Certificate, error) {
 	var (
-		der = i.cert.derCert
+		der   = i.cert.derCert
 		bytes = C.GoBytes(unsafe.Pointer(der.data), C.int(der.len))
 	)
 	cert, err := x509.ParseCertificate(bytes)
@@ -133,9 +133,9 @@ func (i *nssIdentity) CertificateChain() ([]*x509.Certificate, error) {
 		return nil, fmt.Errorf("Error %d, cannot list certificates...\n", int(C.PR_GetError()))
 	}
 	var (
-		list *C.CERTCertList
-		node *C.CERTCertListNode
-		identities = make([]Identity, 0)
+		list         *C.CERTCertList
+		node         *C.CERTCertListNode
+		identities   = make([]Identity, 0)
 		certificates = make([]*x509.Certificate, 0)
 	)
 	list = certs
@@ -177,7 +177,7 @@ func (nssIdentity) Close() {
 }
 
 // Public implements the crypto.Signer interface.
-func (i *nssIdentity) Public() (crypto.PublicKey) {
+func (i *nssIdentity) Public() crypto.PublicKey {
 	var cert, _ = i.Certificate()
 	if cert == nil {
 		return nil
@@ -222,14 +222,14 @@ func (i *nssIdentity) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 	case C.rsaKey:
 		switch hash {
 		/*
-		case crypto.SHA1:
-			mechanism = C.CKM_SHA1_RSA_PKCS
-		case crypto.SHA256:
-			mechanism = C.CKM_SHA256_RSA_PKCS
-		case crypto.SHA384:
-			mechanism = C.CKM_SHA384_RSA_PKCS
-		case crypto.SHA512:
-			mechanism = C.CKM_SHA512_RSA_PKCS
+			case crypto.SHA1:
+				mechanism = C.CKM_SHA1_RSA_PKCS
+			case crypto.SHA256:
+				mechanism = C.CKM_SHA256_RSA_PKCS
+			case crypto.SHA384:
+				mechanism = C.CKM_SHA384_RSA_PKCS
+			case crypto.SHA512:
+				mechanism = C.CKM_SHA512_RSA_PKCS
 		*/
 		default:
 			mechanism = C.CKM_RSA_PKCS
@@ -237,8 +237,8 @@ func (i *nssIdentity) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 	case C.ecKey:
 		switch hash {
 		/*
-		case crypto.SHA1:
-			mechanism = C.CKM_ECDSA_SHA1
+			case crypto.SHA1:
+				mechanism = C.CKM_ECDSA_SHA1
 		*/
 		default:
 			mechanism = C.CKM_ECDSA
@@ -281,7 +281,7 @@ func (nssStore) Import(data []byte, password string) error {
 	}
 	C.memcpy(unsafe.Pointer(pass.data), unsafe.Pointer(&unicodePassword[0]), C.size_t(len(unicodePassword)))
 	var (
-		p12 = C.SEC_PKCS12DecoderStart(pass, nil, nil, nil, nil, nil, nil, nil)
+		p12     = C.SEC_PKCS12DecoderStart(pass, nil, nil, nil, nil, nil, nil, nil)
 		decoded = C.SEC_PKCS12DecoderUpdate(p12, (*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data)))
 	)
 	if decoded != 0 {
@@ -313,12 +313,12 @@ func openStore() (Store, error) {
 	if homeDir == "" {
 		user, err := user.Current()
 
-		if (err == nil) {
+		if err == nil {
 			homeDir = user.HomeDir
 		}
 	}
 
-	if (homeDir == "") {
+	if homeDir == "" {
 		return nil, errors.New("Unable to locate user's home directory")
 	}
 
